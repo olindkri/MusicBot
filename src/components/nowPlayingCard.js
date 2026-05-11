@@ -52,23 +52,19 @@ export function buildNowPlayingRow(player) {
     new ButtonBuilder()
       .setCustomId("np:playpause")
       .setLabel(paused ? "Resume" : "Pause")
-      .setEmoji(paused ? "▶️" : "⏸️")
       .setStyle(paused ? ButtonStyle.Success : ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId("np:skip")
       .setLabel("Skip")
-      .setEmoji("⏭️")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId("np:stop")
       .setLabel("Stop")
-      .setEmoji("⏹️")
       .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
       .setCustomId("np:shuffle")
       .setLabel("Shuffle")
-      .setEmoji("🔀")
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Primary),
   );
 }
 
