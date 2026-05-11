@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from "discord.js";
 import { ensureInVoice, ensureSameVoice, userVoiceChannelId } from "../util/permissions.js";
 import { errorEmbed, infoEmbed } from "../util/embeds.js";
 import { formatDuration } from "../util/formatDuration.js";
+import { scheduleDelete } from "../util/replies.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -40,11 +41,15 @@ export default {
       result = await player.search({ query }, interaction.user);
     } catch (err) {
       console.error("[/play] search error:", err);
-      return interaction.editReply({ embeds: [errorEmbed("Audio service is down. Try again in a moment.")] });
+      await interaction.editReply({ embeds: [errorEmbed("Audio service is down. Try again in a moment.")] });
+      scheduleDelete(interaction);
+      return;
     }
 
     if (!result || !result.tracks?.length) {
-      return interaction.editReply({ embeds: [errorEmbed("Nothing found for that query.")] });
+      await interaction.editReply({ embeds: [errorEmbed("Nothing found for that query.")] });
+      scheduleDelete(interaction);
+      return;
     }
 
     const isPlaylist = result.loadType === "playlist";
@@ -63,7 +68,6 @@ export default {
       return;
     }
 
-    const queuedReplyTtlMs = 8_000;
     if (isPlaylist) {
       const name = result.playlist?.name ?? "Playlist";
       await interaction.editReply({
@@ -75,8 +79,6 @@ export default {
         embeds: [infoEmbed(`Queued **${t.title}** (${formatDuration(t.duration)})`)],
       });
     }
-    setTimeout(() => {
-      interaction.deleteReply().catch(() => {});
-    }, queuedReplyTtlMs);
+    scheduleDelete(interaction);
   },
 };

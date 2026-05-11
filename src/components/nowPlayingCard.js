@@ -75,14 +75,3 @@ export function buildNowPlayingMessage(track, player) {
   };
 }
 
-export function buildQueueEndedMessage() {
-  return {
-    embeds: [
-      new EmbedBuilder()
-        .setColor(COLORS.warn)
-        .setAuthor({ name: "Queue ended" })
-        .setDescription("Nothing left to play. Use `/play` to add more."),
-    ],
-    components: [],
-  };
-}

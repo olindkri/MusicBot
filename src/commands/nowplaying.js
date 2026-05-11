@@ -2,6 +2,7 @@ import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { buildNowPlayingMessage } from "../components/nowPlayingCard.js";
 import { errorEmbed } from "../util/embeds.js";
 import { getGuildState } from "../state.js";
+import { scheduleDelete } from "../util/replies.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -11,12 +12,13 @@ export default {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId);
     const current = player?.queue?.current;
     if (!player?.playing || !current) {
-      return interaction.reply({ embeds: [errorEmbed("Nothing is playing.")], flags: MessageFlags.Ephemeral });
+      await interaction.reply({ embeds: [errorEmbed("Nothing is playing.")], flags: MessageFlags.Ephemeral });
+      scheduleDelete(interaction);
+      return;
     }
 
     const state = getGuildState(player.guildId);
 
-    // Delete the old card (if any).
     if (state.nowPlayingMessageId && state.nowPlayingChannelId) {
       try {
         const oldChannel = await interaction.client.channels.fetch(state.nowPlayingChannelId);

@@ -1,5 +1,5 @@
 import { LavalinkManager } from "lavalink-client";
-import { buildNowPlayingMessage, buildQueueEndedMessage } from "./components/nowPlayingCard.js";
+import { buildNowPlayingMessage } from "./components/nowPlayingCard.js";
 import { getGuildState, clearGuildState } from "./state.js";
 
 async function getTextChannel(client, channelId) {
@@ -33,26 +33,21 @@ async function postOrReplaceCard(client, player, track) {
   state.nowPlayingChannelId = channel.id;
 }
 
-const QUEUE_ENDED_TTL_MS = 8_000;
-
-export async function finaliseCard(client, player) {
-  const state = getGuildState(player.guildId);
+export async function deleteNowPlayingCard(client, guildId) {
+  const state = getGuildState(guildId);
   if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
-  const channel = await getTextChannel(client, state.nowPlayingChannelId);
+  const channelId = state.nowPlayingChannelId;
   const messageId = state.nowPlayingMessageId;
   state.nowPlayingMessageId = null;
   state.nowPlayingChannelId = null;
-  if (!channel?.isTextBased()) return;
-  let msg;
   try {
-    msg = await channel.messages.fetch(messageId);
-    await msg.edit(buildQueueEndedMessage());
+    const channel = await getTextChannel(client, channelId);
+    if (!channel?.isTextBased()) return;
+    const msg = await channel.messages.fetch(messageId);
+    await msg.delete();
   } catch {
-    return; // Card already gone.
+    // Already gone.
   }
-  setTimeout(() => {
-    msg.delete().catch(() => {});
-  }, QUEUE_ENDED_TTL_MS);
 }
 
 export function createLavalink(client) {
@@ -97,12 +92,13 @@ export function createLavalink(client) {
   });
 
   manager.on("queueEnd", (player) => {
-    finaliseCard(client, player).catch((err) =>
-      console.error("[lavalink] finaliseCard:", err)
+    deleteNowPlayingCard(client, player.guildId).catch((err) =>
+      console.error("[lavalink] deleteNowPlayingCard (queueEnd):", err)
     );
   });
 
-  manager.on("playerDestroy", (player) => {
+  manager.on("playerDestroy", async (player) => {
+    await deleteNowPlayingCard(client, player.guildId).catch(() => {});
     clearGuildState(player.guildId);
   });
 

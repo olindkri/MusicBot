@@ -1,5 +1,6 @@
 import { Events, MessageFlags } from "discord.js";
 import { errorEmbed } from "../util/embeds.js";
+import { scheduleDelete } from "../util/replies.js";
 
 async function safeErrorReply(interaction, message) {
   const payload = {
@@ -12,6 +13,7 @@ async function safeErrorReply(interaction, message) {
     } else {
       await interaction.reply(payload);
     }
+    scheduleDelete(interaction);
   } catch (err) {
     console.error("[interactionCreate] failed to send error reply:", err);
   }

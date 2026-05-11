@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
 import { COLORS, errorEmbed } from "../util/embeds.js";
 import { formatDuration } from "../util/formatDuration.js";
+import { scheduleDelete } from "../util/replies.js";
 
 const PAGE_SIZE = 10;
 
@@ -14,13 +15,17 @@ export default {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId);
     if (!player) {
-      return interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
+      await interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
+      scheduleDelete(interaction);
+      return;
     }
 
     const upcoming = player.queue.tracks;
     const current = player.queue.current;
     if (upcoming.length === 0 && !current) {
-      return interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
+      await interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
+      scheduleDelete(interaction);
+      return;
     }
 
     const requestedPage = interaction.options.getInteger("page") ?? 1;
@@ -51,8 +56,6 @@ export default {
     embed.setFooter({ text: `${upcoming.length} track(s) queued` });
 
     await interaction.reply({ embeds: [embed] });
-    setTimeout(() => {
-      interaction.deleteReply().catch(() => {});
-    }, 15_000);
+    scheduleDelete(interaction);
   },
 };
