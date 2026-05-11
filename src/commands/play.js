@@ -94,7 +94,10 @@ export default {
       await player.queue.add(tracks);
       if (justJoining) await prependIntro(player, interaction.user);
       const wasIdle = !player.playing && !player.paused;
-      if (wasIdle) await player.play();
+      if (wasIdle) {
+        if (justJoining) await new Promise((r) => setTimeout(r, 1000));
+        await player.play();
+      }
 
       await interaction.editReply({
         embeds: [infoEmbed(`Queued **${tracks.length}** tracks from **${bundle.name}**.`)],
