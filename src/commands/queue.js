@@ -1,7 +1,7 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from "discord.js";
-import { COLORS, errorEmbed } from "../util/embeds.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { COLORS } from "../util/embeds.js";
 import { formatDuration } from "../util/formatDuration.js";
-import { scheduleDelete } from "../util/replies.js";
+import { replyError, scheduleDelete } from "../util/replies.js";
 
 const PAGE_SIZE = 10;
 
@@ -14,19 +14,11 @@ export default {
     ),
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId);
-    if (!player) {
-      await interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
-      scheduleDelete(interaction);
-      return;
-    }
+    if (!player) return replyError(interaction, "Not connected.");
 
     const upcoming = player.queue.tracks;
     const current = player.queue.current;
-    if (upcoming.length === 0 && !current) {
-      await interaction.reply({ embeds: [errorEmbed("Nothing in the queue.")], flags: MessageFlags.Ephemeral });
-      scheduleDelete(interaction);
-      return;
-    }
+    if (upcoming.length === 0 && !current) return replyError(interaction, "Nothing in the queue.");
 
     const requestedPage = interaction.options.getInteger("page") ?? 1;
     const totalPages = Math.max(1, Math.ceil(upcoming.length / PAGE_SIZE));

@@ -34,8 +34,6 @@ export default {
       });
     }
 
-    if (!player.connected) await player.connect();
-
     let result;
     try {
       result = await player.search({ query }, interaction.user);
@@ -52,13 +50,11 @@ export default {
       return;
     }
 
-    const isPlaylist = result.loadType === "playlist";
+    if (!player.connected) await player.connect();
 
-    if (isPlaylist) {
-      await player.queue.add(result.tracks);
-    } else {
-      await player.queue.add(result.tracks[0]);
-    }
+    const isPlaylist = result.loadType === "playlist";
+    if (isPlaylist) await player.queue.add(result.tracks);
+    else await player.queue.add(result.tracks[0]);
 
     const wasIdle = !player.playing && !player.paused;
     if (wasIdle) await player.play();

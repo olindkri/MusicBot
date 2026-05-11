@@ -1,8 +1,7 @@
-import { SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandBuilder } from "discord.js";
 import { buildNowPlayingMessage } from "../components/nowPlayingCard.js";
-import { errorEmbed } from "../util/embeds.js";
 import { getGuildState } from "../state.js";
-import { scheduleDelete } from "../util/replies.js";
+import { replyError } from "../util/replies.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -11,28 +10,23 @@ export default {
   async execute(interaction) {
     const player = interaction.client.lavalink.getPlayer(interaction.guildId);
     const current = player?.queue?.current;
-    if (!player?.playing || !current) {
-      await interaction.reply({ embeds: [errorEmbed("Nothing is playing.")], flags: MessageFlags.Ephemeral });
-      scheduleDelete(interaction);
-      return;
-    }
+    if (!player?.playing || !current) return replyError(interaction, "Nothing is playing.");
 
     const state = getGuildState(player.guildId);
 
     if (state.nowPlayingMessageId && state.nowPlayingChannelId) {
+      const oldChannelId = state.nowPlayingChannelId;
+      const oldMessageId = state.nowPlayingMessageId;
+      state.nowPlayingMessageId = null;
+      state.nowPlayingChannelId = null;
       try {
-        const oldChannel = await interaction.client.channels.fetch(state.nowPlayingChannelId);
-        const oldMsg = await oldChannel.messages.fetch(state.nowPlayingMessageId);
-        await oldMsg.delete();
-      } catch {
-        // Already gone.
-      }
+        const oldChannel = await interaction.client.channels.fetch(oldChannelId);
+        await oldChannel.messages.delete(oldMessageId);
+      } catch { /* already gone */ }
     }
 
-    const payload = buildNowPlayingMessage(current, player);
-    await interaction.reply(payload);
+    await interaction.reply(buildNowPlayingMessage(current, player));
     const sent = await interaction.fetchReply();
-
     state.nowPlayingMessageId = sent.id;
     state.nowPlayingChannelId = interaction.channelId;
     player.textChannelId = interaction.channelId;

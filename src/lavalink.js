@@ -33,7 +33,7 @@ async function postOrReplaceCard(client, player, track) {
   state.nowPlayingChannelId = channel.id;
 }
 
-export async function deleteNowPlayingCard(client, guildId) {
+async function deleteNowPlayingCard(client, guildId) {
   const state = getGuildState(guildId);
   if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
   const channelId = state.nowPlayingChannelId;
@@ -43,8 +43,7 @@ export async function deleteNowPlayingCard(client, guildId) {
   try {
     const channel = await getTextChannel(client, channelId);
     if (!channel?.isTextBased()) return;
-    const msg = await channel.messages.fetch(messageId);
-    await msg.delete();
+    await channel.messages.delete(messageId);
   } catch {
     // Already gone.
   }
