@@ -75,7 +75,7 @@ export function createLavalink(client) {
     autoSkip: true,
     playerOptions: {
       defaultSearchPlatform: "ytsearch",
-      onDisconnect: { autoReconnect: true, destroyPlayer: false },
+      onDisconnect: { autoReconnect: false, destroyPlayer: true },
       onEmptyQueue: { destroyAfterMs: 30_000 },
     },
   });
