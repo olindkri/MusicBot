@@ -9,6 +9,10 @@ export default {
     if (!(await ensureSameVoice(interaction, player))) return;
 
     await interaction.deferUpdate();
+    if (player.queue.tracks.length === 0) {
+      await player.destroy("skip on last track");
+      return;
+    }
     await player.skip();
   },
 };
