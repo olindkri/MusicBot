@@ -3,11 +3,30 @@ import { ensureInVoice, ensureSameVoice, userVoiceChannelId } from "../util/perm
 import { errorEmbed, infoEmbed } from "../util/embeds.js";
 import { formatDuration } from "../util/formatDuration.js";
 import { scheduleDelete } from "../util/replies.js";
+import { parseSpotifyUrl, fetchSpotifyPlaylist, fetchSpotifyAlbum } from "../util/spotify.js";
+
+const SEARCH_CHUNK_SIZE = 10;
+
+async function resolveSpotifyBundle(player, requester, trackUrls) {
+  const tracks = [];
+  for (let i = 0; i < trackUrls.length; i += SEARCH_CHUNK_SIZE) {
+    const slice = trackUrls.slice(i, i + SEARCH_CHUNK_SIZE);
+    const results = await Promise.all(
+      slice.map((url) =>
+        player.search({ query: url }, requester).catch(() => null),
+      ),
+    );
+    for (const r of results) {
+      if (r?.tracks?.[0]) tracks.push(r.tracks[0]);
+    }
+  }
+  return tracks;
+}
 
 export default {
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Play a track or playlist from a URL or search query.")
+    .setDescription("Play a track, playlist, or album from a URL or search query.")
     .addStringOption((opt) =>
       opt.setName("query").setDescription("URL or search terms").setRequired(true),
     ),
@@ -32,6 +51,44 @@ export default {
         selfDeaf: true,
         volume: 80,
       });
+    }
+
+    const spotify = parseSpotifyUrl(query);
+    if (spotify && (spotify.type === "playlist" || spotify.type === "album")) {
+      let bundle;
+      try {
+        bundle = spotify.type === "playlist"
+          ? await fetchSpotifyPlaylist(spotify.id)
+          : await fetchSpotifyAlbum(spotify.id);
+      } catch (err) {
+        console.error("[/play] spotify api error:", err);
+        await interaction.editReply({ embeds: [errorEmbed("Couldn't read that Spotify playlist/album.")] });
+        scheduleDelete(interaction);
+        return;
+      }
+      if (!bundle.trackUrls.length) {
+        await interaction.editReply({ embeds: [errorEmbed("Playlist is empty.")] });
+        scheduleDelete(interaction);
+        return;
+      }
+
+      const tracks = await resolveSpotifyBundle(player, interaction.user, bundle.trackUrls);
+      if (!tracks.length) {
+        await interaction.editReply({ embeds: [errorEmbed("Couldn't resolve any tracks from that playlist.")] });
+        scheduleDelete(interaction);
+        return;
+      }
+
+      if (!player.connected) await player.connect();
+      await player.queue.add(tracks);
+      const wasIdle = !player.playing && !player.paused;
+      if (wasIdle) await player.play();
+
+      await interaction.editReply({
+        embeds: [infoEmbed(`Queued **${tracks.length}** tracks from **${bundle.name}**.`)],
+      });
+      scheduleDelete(interaction);
+      return;
     }
 
     let result;
