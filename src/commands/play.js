@@ -22,6 +22,8 @@ export default {
     let player = manager.getPlayer(guildId);
     if (player && !(await ensureSameVoice(interaction, player))) return;
 
+    await interaction.deferReply();
+
     if (!player) {
       player = manager.createPlayer({
         guildId,
@@ -33,8 +35,6 @@ export default {
     }
 
     if (!player.connected) await player.connect();
-
-    await interaction.deferReply();
 
     let result;
     try {
