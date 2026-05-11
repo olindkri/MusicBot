@@ -1,4 +1,52 @@
 import { LavalinkManager } from "lavalink-client";
+import { buildNowPlayingMessage, buildQueueEndedMessage } from "./components/nowPlayingCard.js";
+import { getGuildState, clearGuildState } from "./state.js";
+
+async function getTextChannel(client, channelId) {
+  if (!channelId) return null;
+  try {
+    return await client.channels.fetch(channelId);
+  } catch {
+    return null;
+  }
+}
+
+async function postOrReplaceCard(client, player, track) {
+  const state = getGuildState(player.guildId);
+  const channel = await getTextChannel(client, player.textChannelId);
+  if (!channel?.isTextBased()) return;
+
+  const payload = buildNowPlayingMessage(track, player);
+
+  if (state.nowPlayingMessageId && state.nowPlayingChannelId === channel.id) {
+    try {
+      const existing = await channel.messages.fetch(state.nowPlayingMessageId);
+      await existing.edit(payload);
+      return;
+    } catch {
+      // Message was deleted or the channel changed; fall through to repost.
+    }
+  }
+
+  const msg = await channel.send(payload);
+  state.nowPlayingMessageId = msg.id;
+  state.nowPlayingChannelId = channel.id;
+}
+
+async function finaliseCard(client, player) {
+  const state = getGuildState(player.guildId);
+  if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
+  const channel = await getTextChannel(client, state.nowPlayingChannelId);
+  if (!channel?.isTextBased()) return;
+  try {
+    const msg = await channel.messages.fetch(state.nowPlayingMessageId);
+    await msg.edit(buildQueueEndedMessage());
+  } catch {
+    // Card already gone — nothing to do.
+  }
+  state.nowPlayingMessageId = null;
+  state.nowPlayingChannelId = null;
+}
 
 export function createLavalink(client) {
   const manager = new LavalinkManager({
@@ -8,6 +56,8 @@ export function createLavalink(client) {
       port: Number(process.env.LAVALINK_PORT || 2333),
       authorization: process.env.LAVALINK_PASSWORD || "changeme",
       secure: false,
+      retryAmount: 30,
+      retryDelay: 10_000,
     }],
     sendToShard: (guildId, payload) =>
       client.guilds.cache.get(guildId)?.shard?.send(payload),
@@ -33,9 +83,26 @@ export function createLavalink(client) {
     console.warn(`[lavalink] Node "${node.id}" disconnected:`, reason)
   );
 
-  // Bridge raw Discord voice updates to Lavalink.
+  manager.on("trackStart", (player, track) => {
+    postOrReplaceCard(client, player, track).catch((err) =>
+      console.error("[lavalink] postOrReplaceCard:", err)
+    );
+  });
+
+  manager.on("queueEnd", (player) => {
+    finaliseCard(client, player).catch((err) =>
+      console.error("[lavalink] finaliseCard:", err)
+    );
+  });
+
+  manager.on("playerDestroy", (player) => {
+    clearGuildState(player.guildId);
+  });
+
   client.on("raw", (d) => manager.sendRawData(d));
-  client.once("ready", () => manager.init({ id: client.user.id, username: client.user.username }));
+  client.once("ready", () =>
+    manager.init({ id: client.user.id, username: client.user.username })
+  );
 
   return manager;
 }
