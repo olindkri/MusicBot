@@ -33,19 +33,26 @@ async function postOrReplaceCard(client, player, track) {
   state.nowPlayingChannelId = channel.id;
 }
 
+const QUEUE_ENDED_TTL_MS = 8_000;
+
 async function finaliseCard(client, player) {
   const state = getGuildState(player.guildId);
   if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
   const channel = await getTextChannel(client, state.nowPlayingChannelId);
-  if (!channel?.isTextBased()) return;
-  try {
-    const msg = await channel.messages.fetch(state.nowPlayingMessageId);
-    await msg.edit(buildQueueEndedMessage());
-  } catch {
-    // Card already gone — nothing to do.
-  }
+  const messageId = state.nowPlayingMessageId;
   state.nowPlayingMessageId = null;
   state.nowPlayingChannelId = null;
+  if (!channel?.isTextBased()) return;
+  let msg;
+  try {
+    msg = await channel.messages.fetch(messageId);
+    await msg.edit(buildQueueEndedMessage());
+  } catch {
+    return; // Card already gone.
+  }
+  setTimeout(() => {
+    msg.delete().catch(() => {});
+  }, QUEUE_ENDED_TTL_MS);
 }
 
 export function createLavalink(client) {

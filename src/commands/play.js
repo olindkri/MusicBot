@@ -63,16 +63,20 @@ export default {
       return;
     }
 
+    const queuedReplyTtlMs = 8_000;
     if (isPlaylist) {
       const name = result.playlist?.name ?? "Playlist";
-      return interaction.editReply({
+      await interaction.editReply({
         embeds: [infoEmbed(`➕ Queued **${result.tracks.length}** tracks from **${name}**.`)],
       });
+    } else {
+      const t = result.tracks[0].info;
+      await interaction.editReply({
+        embeds: [infoEmbed(`➕ Queued **${t.title}** (${formatDuration(t.duration)})`)],
+      });
     }
-
-    const t = result.tracks[0].info;
-    return interaction.editReply({
-      embeds: [infoEmbed(`➕ Queued **${t.title}** (${formatDuration(t.duration)})`)],
-    });
+    setTimeout(() => {
+      interaction.deleteReply().catch(() => {});
+    }, queuedReplyTtlMs);
   },
 };
