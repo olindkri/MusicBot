@@ -31,8 +31,8 @@ plugins:
     allowDirectPlaylistIds: true
     clients:
       - MUSIC
-      - ANDROID_TESTSUITE
       - WEB
+      - WEBEMBEDDED
       - TVHTML5_SIMPLY
   sponsorblock:
     enabled: true
@@ -47,7 +47,7 @@ plugins:
 
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.0"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
       snapshot: false
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.2.0"
       snapshot: false
