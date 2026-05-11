@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+.git
+.gitignore
+docs
+*.md
+lavalink/plugins
+lavalink/logs
