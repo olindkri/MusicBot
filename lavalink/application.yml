@@ -11,8 +11,8 @@ plugins:
       - "ytsearch:%QUERY%"
     sources:
       spotify: true
-      applemusic: true
-      deezer: true
+      applemusic: false
+      deezer: false
       yandexmusic: false
       flowery-tts: false
       youtube: true
