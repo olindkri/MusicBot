@@ -4,6 +4,7 @@ import { errorEmbed, infoEmbed } from "../util/embeds.js";
 import { formatDuration } from "../util/formatDuration.js";
 import { scheduleDelete } from "../util/replies.js";
 import { parseSpotifyUrl, fetchSpotifyPlaylist, fetchSpotifyAlbum } from "../util/spotify.js";
+import { randomIntroQuery } from "../util/intros.js";
 
 const SEARCH_CHUNK_SIZE = 10;
 
@@ -12,15 +13,23 @@ async function resolveSpotifyBundle(player, requester, trackUrls) {
   for (let i = 0; i < trackUrls.length; i += SEARCH_CHUNK_SIZE) {
     const slice = trackUrls.slice(i, i + SEARCH_CHUNK_SIZE);
     const results = await Promise.all(
-      slice.map((url) =>
-        player.search({ query: url }, requester).catch(() => null),
-      ),
+      slice.map((url) => player.search({ query: url }, requester).catch(() => null)),
     );
     for (const r of results) {
       if (r?.tracks?.[0]) tracks.push(r.tracks[0]);
     }
   }
   return tracks;
+}
+
+async function prependIntro(player, requester) {
+  try {
+    const result = await player.search({ query: randomIntroQuery() }, requester);
+    const intro = result?.tracks?.[0];
+    if (intro) player.queue.tracks.unshift(intro);
+  } catch (err) {
+    console.warn("[/play] could not load intro:", err.message);
+  }
 }
 
 export default {
@@ -42,6 +51,8 @@ export default {
     if (player && !(await ensureSameVoice(interaction, player))) return;
 
     await interaction.deferReply();
+
+    const justJoining = !player || !player.connected;
 
     if (!player) {
       player = manager.createPlayer({
@@ -81,6 +92,7 @@ export default {
 
       if (!player.connected) await player.connect();
       await player.queue.add(tracks);
+      if (justJoining) await prependIntro(player, interaction.user);
       const wasIdle = !player.playing && !player.paused;
       if (wasIdle) await player.play();
 
@@ -113,10 +125,12 @@ export default {
     if (isPlaylist) await player.queue.add(result.tracks);
     else await player.queue.add(result.tracks[0]);
 
+    if (justJoining) await prependIntro(player, interaction.user);
+
     const wasIdle = !player.playing && !player.paused;
     if (wasIdle) await player.play();
 
-    if (wasIdle && !isPlaylist) {
+    if (wasIdle && !isPlaylist && !justJoining) {
       await interaction.deleteReply().catch(() => {});
       return;
     }

@@ -12,6 +12,7 @@ services:
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
       - ./lavalink/plugins:/opt/Lavalink/plugins
+      - ./assets/intros:/opt/Lavalink/intros:ro
     networks:
       - musicbot
 

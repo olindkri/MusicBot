@@ -12,6 +12,8 @@ async function getTextChannel(client, channelId) {
 }
 
 async function postOrReplaceCard(client, player, track) {
+  // Intro jingles are local files — never decorate them with a card.
+  if (track?.info?.sourceName === "local") return;
   const state = getGuildState(player.guildId);
   const channel = await getTextChannel(client, player.textChannelId);
   if (!channel?.isTextBased()) return;
