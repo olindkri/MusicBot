@@ -1,11 +1,18 @@
 // Spotify's Web API restricted /v1/playlists/{id}/tracks to apps with
-// Spotify-approved "extended quota" status in late 2024. For personal-use bots
-// using client_credentials, the API endpoint returns 403 or strips the tracks
-// field. As a workaround, scrape the playlist/album's public web page — the
-// HTML contains the track URIs in a stable enough format.
+// Spotify-approved "extended quota" status in late 2024. Personal-use bots
+// using client_credentials get 403 / empty responses. As a workaround, scrape
+// the public web page — but Spotify also gates SSR by User-Agent:
+//   - Real browsers (Chrome/Firefox) → SPA shell (~6 KB, no track data, JS-rendered)
+//   - Social-bot UAs (Slackbot, Facebookbot) → OG metadata only (~28 KB)
+//   - Generic UAs (curl/wget) → full SSR (~110 KB) with all track rows inline
+// We send curl's UA to force the SSR variant.
+//
+// Tracks that belong to the playlist/album show up in the markup as:
+//   aria-labelledby="listrow-title-track-spotify:track:<id>(-<index>)?"
+// This excludes "recommended" tracks at the bottom of playlist pages, which
+// are rendered with different markup.
 
-const USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const SCRAPE_UA = "curl/8.4.0";
 
 export function parseSpotifyUrl(input) {
   try {
@@ -20,19 +27,19 @@ export function parseSpotifyUrl(input) {
 }
 
 async function fetchPublicPage(url) {
-  const r = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  const r = await fetch(url, { headers: { "User-Agent": SCRAPE_UA } });
   if (!r.ok) throw new Error(`Spotify page ${url}: HTTP ${r.status}`);
   return r.text();
 }
 
 function extractOgTitle(html) {
-  const m = html.match(/<meta property="og:title" content="([^"]+)"/);
-  return m?.[1];
+  return html.match(/<meta property="og:title" content="([^"]+)"/)?.[1];
 }
 
 function extractTrackUrls(html, max = 100) {
   const seen = new Set();
-  for (const m of html.matchAll(/spotify:track:([A-Za-z0-9]+)/g)) {
+  const re = /aria-labelledby="listrow-title-track-spotify:track:([A-Za-z0-9]+)/g;
+  for (const m of html.matchAll(re)) {
     seen.add(m[1]);
     if (seen.size >= max) break;
   }
