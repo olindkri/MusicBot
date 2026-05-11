@@ -95,7 +95,7 @@ export default {
       if (justJoining) await prependIntro(player, interaction.user);
       const wasIdle = !player.playing && !player.paused;
       if (wasIdle) {
-        if (justJoining) await new Promise((r) => setTimeout(r, 1000));
+        if (justJoining) await new Promise((r) => setTimeout(r, 2000));
         await player.play();
       }
 
@@ -131,7 +131,10 @@ export default {
     if (justJoining) await prependIntro(player, interaction.user);
 
     const wasIdle = !player.playing && !player.paused;
-    if (wasIdle) await player.play();
+    if (wasIdle) {
+      if (justJoining) await new Promise((r) => setTimeout(r, 2000));
+      await player.play();
+    }
 
     if (wasIdle && !isPlaylist && !justJoining) {
       await interaction.deleteReply().catch(() => {});
