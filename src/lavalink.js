@@ -35,7 +35,7 @@ async function postOrReplaceCard(client, player, track) {
 
 const QUEUE_ENDED_TTL_MS = 8_000;
 
-async function finaliseCard(client, player) {
+export async function finaliseCard(client, player) {
   const state = getGuildState(player.guildId);
   if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
   const channel = await getTextChannel(client, state.nowPlayingChannelId);

@@ -38,12 +38,12 @@ export default {
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.brand)
-      .setTitle(`🎵 Queue — page ${page}/${totalPages}`)
+      .setTitle(`Queue — page ${page}/${totalPages}`)
       .setDescription(lines.length ? lines.join("\n") : "_No upcoming tracks._");
 
     if (current) {
       embed.addFields({
-        name: "▶ Now playing",
+        name: "Now playing",
         value: `[${current.info.title}](${current.info.uri}) — \`${current.info.isStream ? "LIVE" : formatDuration(current.info.duration)}\``,
       });
     }
@@ -51,5 +51,8 @@ export default {
     embed.setFooter({ text: `${upcoming.length} track(s) queued` });
 
     await interaction.reply({ embeds: [embed] });
+    setTimeout(() => {
+      interaction.deleteReply().catch(() => {});
+    }, 15_000);
   },
 };

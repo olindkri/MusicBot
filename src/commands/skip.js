@@ -11,6 +11,6 @@ export default {
     }
     if (!(await ensureSameVoice(interaction, player))) return;
     await player.skip();
-    await interaction.reply({ embeds: [successEmbed("⏭ Skipped.")], flags: MessageFlags.Ephemeral });
+    await interaction.reply({ embeds: [successEmbed("Skipped.")], flags: MessageFlags.Ephemeral });
   },
 };

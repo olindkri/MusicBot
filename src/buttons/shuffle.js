@@ -20,7 +20,7 @@ export default {
 
     await player.queue.shuffle();
     await interaction.reply({
-      embeds: [infoEmbed(`🔀 Shuffled ${upcoming.length} upcoming tracks.`)],
+      embeds: [infoEmbed(`Shuffled ${upcoming.length} upcoming tracks.`)],
       ephemeral: true,
     });
   },

@@ -13,6 +13,6 @@ export default {
     }
     if (!(await ensureSameVoice(interaction, player))) return;
     await player.disconnect();
-    await interaction.reply({ embeds: [successEmbed("👋 Left the voice channel. Queue preserved.")], flags: MessageFlags.Ephemeral });
+    await interaction.reply({ embeds: [successEmbed("Left the voice channel. Queue preserved.")], flags: MessageFlags.Ephemeral });
   },
 };

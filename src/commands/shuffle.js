@@ -20,6 +20,6 @@ export default {
       });
     }
     await player.queue.shuffle();
-    await interaction.reply({ embeds: [successEmbed(`🔀 Shuffled ${n} upcoming tracks.`)], flags: MessageFlags.Ephemeral });
+    await interaction.reply({ embeds: [successEmbed(`Shuffled ${n} upcoming tracks.`)], flags: MessageFlags.Ephemeral });
   },
 };

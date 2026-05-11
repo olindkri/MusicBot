@@ -67,12 +67,12 @@ export default {
     if (isPlaylist) {
       const name = result.playlist?.name ?? "Playlist";
       await interaction.editReply({
-        embeds: [infoEmbed(`➕ Queued **${result.tracks.length}** tracks from **${name}**.`)],
+        embeds: [infoEmbed(`Queued **${result.tracks.length}** tracks from **${name}**.`)],
       });
     } else {
       const t = result.tracks[0].info;
       await interaction.editReply({
-        embeds: [infoEmbed(`➕ Queued **${t.title}** (${formatDuration(t.duration)})`)],
+        embeds: [infoEmbed(`Queued **${t.title}** (${formatDuration(t.duration)})`)],
       });
     }
     setTimeout(() => {

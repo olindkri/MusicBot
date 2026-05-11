@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from "discord.js";
 import { ensureSameVoice } from "../util/permissions.js";
-import { errorEmbed, successEmbed } from "../util/embeds.js";
+import { errorEmbed } from "../util/embeds.js";
+import { finaliseCard } from "../lavalink.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -12,8 +13,10 @@ export default {
       return interaction.reply({ embeds: [errorEmbed("Not connected.")], flags: MessageFlags.Ephemeral });
     }
     if (!(await ensureSameVoice(interaction, player))) return;
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     player.queue.tracks.length = 0;
+    await finaliseCard(interaction.client, player);
     await player.destroy("user used /stop");
-    await interaction.reply({ embeds: [successEmbed("⏹ Stopped and disconnected.")], flags: MessageFlags.Ephemeral });
+    await interaction.deleteReply().catch(() => {});
   },
 };

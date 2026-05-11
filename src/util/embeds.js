@@ -8,7 +8,7 @@ export const COLORS = {
 };
 
 export function errorEmbed(message) {
-  return new EmbedBuilder().setColor(COLORS.error).setDescription(`❌ ${message}`);
+  return new EmbedBuilder().setColor(COLORS.error).setDescription(message);
 }
 
 export function infoEmbed(message) {
@@ -16,5 +16,5 @@ export function infoEmbed(message) {
 }
 
 export function successEmbed(message) {
-  return new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ ${message}`);
+  return new EmbedBuilder().setColor(COLORS.success).setDescription(message);
 }

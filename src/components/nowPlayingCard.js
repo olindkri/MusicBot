@@ -34,10 +34,10 @@ export function buildNowPlayingEmbed(track) {
     .setColor(COLORS.brand)
     .setTitle(info.title || "Unknown title")
     .setURL(info.uri || null)
-    .setAuthor({ name: "▶ Now playing" })
+    .setAuthor({ name: "Now playing" })
     .addFields(
       { name: "Artist", value: info.author || "Unknown", inline: true },
-      { name: "Duration", value: info.isStream ? "🔴 LIVE" : formatDuration(info.duration), inline: true },
+      { name: "Duration", value: info.isStream ? "LIVE" : formatDuration(info.duration), inline: true },
       { name: "Source", value: sourceLabel(info.sourceName), inline: true },
     )
     .setFooter({ text: `Requested by ${requester?.username ?? "unknown"}` });
@@ -80,7 +80,7 @@ export function buildQueueEndedMessage() {
     embeds: [
       new EmbedBuilder()
         .setColor(COLORS.warn)
-        .setAuthor({ name: "⏹ Queue ended" })
+        .setAuthor({ name: "Queue ended" })
         .setDescription("Nothing left to play. Use `/play` to add more."),
     ],
     components: [],
