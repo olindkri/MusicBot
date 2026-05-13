@@ -136,7 +136,7 @@ export default {
       await player.play();
     }
 
-    if (wasIdle && !isPlaylist && !justJoining) {
+    if (wasIdle && !isPlaylist) {
       await interaction.deleteReply().catch(() => {});
       return;
     }
