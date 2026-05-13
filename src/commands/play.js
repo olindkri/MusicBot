@@ -66,13 +66,39 @@ export default {
 
     const spotify = parseSpotifyUrl(query);
     if (spotify && (spotify.type === "playlist" || spotify.type === "album")) {
+      // Try LavaSrc first — if Spotify credentials are configured it may resolve
+      // the full playlist. Fall back to HTML scraping if it fails or returns empty.
+      let lavaResult;
+      try {
+        lavaResult = await player.search({ query }, interaction.user);
+      } catch {
+        lavaResult = null;
+      }
+      if (lavaResult?.loadType === "playlist" && lavaResult.tracks.length) {
+        if (!player.connected) await player.connect();
+        await player.queue.add(lavaResult.tracks);
+        if (justJoining) await prependIntro(player, interaction.user);
+        const wasIdle = !player.playing && !player.paused;
+        if (wasIdle) {
+          if (justJoining) await new Promise((r) => setTimeout(r, 1000));
+          await player.play();
+        }
+        const name = lavaResult.playlist?.name ?? "Spotify playlist";
+        await interaction.editReply({
+          embeds: [infoEmbed(`Queued **${lavaResult.tracks.length}** tracks from **${name}**.`)],
+        });
+        scheduleDelete(interaction);
+        return;
+      }
+
+      // LavaSrc failed or returned empty — scrape the public page instead.
       let bundle;
       try {
         bundle = spotify.type === "playlist"
           ? await fetchSpotifyPlaylist(spotify.id)
           : await fetchSpotifyAlbum(spotify.id);
       } catch (err) {
-        console.error("[/play] spotify api error:", err);
+        console.error("[/play] spotify scrape error:", err);
         await interaction.editReply({ embeds: [errorEmbed("Couldn't read that Spotify playlist/album.")] });
         scheduleDelete(interaction);
         return;
