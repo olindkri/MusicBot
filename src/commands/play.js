@@ -136,15 +136,15 @@ export default {
       await player.play();
     }
 
-    if (wasIdle && !isPlaylist) {
-      await interaction.deleteReply().catch(() => {});
-      return;
-    }
-
     if (isPlaylist) {
       const name = result.playlist?.name ?? "Playlist";
       await interaction.editReply({
         embeds: [infoEmbed(`Queued **${result.tracks.length}** tracks from **${name}**.`)],
+      });
+    } else if (wasIdle) {
+      const t = result.tracks[0].info;
+      await interaction.editReply({
+        embeds: [infoEmbed(`Playing **${t.title}** (${formatDuration(t.duration)})`)],
       });
     } else {
       const t = result.tracks[0].info;
