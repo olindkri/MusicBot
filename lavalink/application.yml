@@ -9,6 +9,8 @@ plugins:
     providers:
       - "ytsearch:\"%ISRC%\""
       - "ytsearch:%QUERY%"
+      # Fallback when YouTube refuses a track (bot detection / age gate).
+      - "scsearch:%QUERY%"
     sources:
       spotify: true
       applemusic: false
@@ -31,9 +33,15 @@ plugins:
     allowDirectPlaylistIds: true
     clients:
       - MUSIC
+      - TV
+      - MWEB
+      - WEB
       - ANDROID_VR
-      - IOS
-      - TVHTML5_SIMPLY
+    oauth:
+      enabled: true
+      # Populated after the one-time device login; see README.
+      refreshToken: "${YOUTUBE_OAUTH_REFRESH_TOKEN:}"
+      skipInitialization: false
   sponsorblock:
     enabled: true
     categories:
@@ -47,7 +55,7 @@ plugins:
 
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
       snapshot: false
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.1"
       snapshot: false

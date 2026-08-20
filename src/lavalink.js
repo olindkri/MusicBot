@@ -1,6 +1,7 @@
 import { LavalinkManager } from "lavalink-client";
 import { buildNowPlayingMessage } from "./components/nowPlayingCard.js";
 import { getGuildState, clearGuildState } from "./state.js";
+import { errorEmbed } from "./util/embeds.js";
 
 async function getTextChannel(client, channelId) {
   if (!channelId) return null;
@@ -89,6 +90,32 @@ export function createLavalink(client) {
   manager.on("trackStart", (player, track) => {
     postOrReplaceCard(client, player, track).catch((err) =>
       console.error("[lavalink] postOrReplaceCard:", err)
+    );
+  });
+
+  async function announceTrackFailure(player, track, detail) {
+    const title = track?.info?.title ?? "Unknown track";
+    console.error(`[lavalink] track failed: ${title} — ${detail}`);
+    const channel = await getTextChannel(client, player.textChannelId);
+    if (channel?.isTextBased()) {
+      await channel
+        .send({ embeds: [errorEmbed(`Couldn't play **${title}**. Skipping.`)] })
+        .then((msg) => setTimeout(() => msg.delete().catch(() => {}), 8000))
+        .catch(() => {});
+    }
+    // The track never started, so nothing advances the queue on its own.
+    if (player.queue.tracks.length) await player.skip().catch(() => {});
+  }
+
+  manager.on("trackError", (player, track, payload) => {
+    announceTrackFailure(player, track, payload?.exception?.message ?? "unknown error").catch(
+      (err) => console.error("[lavalink] trackError handler:", err)
+    );
+  });
+
+  manager.on("trackStuck", (player, track) => {
+    announceTrackFailure(player, track, "stuck (no audio received)").catch((err) =>
+      console.error("[lavalink] trackStuck handler:", err)
     );
   });
 
