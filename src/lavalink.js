@@ -2,6 +2,7 @@ import { LavalinkManager } from "lavalink-client";
 import { buildNowPlayingMessage } from "./components/nowPlayingCard.js";
 import { getGuildState, clearGuildState } from "./state.js";
 import { errorEmbed } from "./util/embeds.js";
+import { announce } from "./util/announce.js";
 
 async function getTextChannel(client, channelId) {
   if (!channelId) return null;
@@ -77,15 +78,45 @@ export function createLavalink(client) {
     },
   });
 
-  manager.nodeManager.on("connect", (node) =>
-    console.log(`[lavalink] Node "${node.id}" connected`)
-  );
-  manager.nodeManager.on("error", (node, err) =>
-    console.error(`[lavalink] Node "${node.id}" error:`, err.message)
-  );
-  manager.nodeManager.on("disconnect", (node, reason) =>
-    console.warn(`[lavalink] Node "${node.id}" disconnected:`, reason)
-  );
+  // A Lavalink restart drops the node for a second or two. Only tell the
+  // server once an outage looks real, and only say we're back if we said
+  // we were down.
+  const OUTAGE_GRACE_MS = 15_000;
+  let outageTimer = null;
+  let outageAnnounced = false;
+
+  function onNodeDown() {
+    if (outageTimer || outageAnnounced) return;
+    outageTimer = setTimeout(() => {
+      outageTimer = null;
+      outageAnnounced = true;
+      announce(client, "audioDown").catch((err) =>
+        console.error("[lavalink] audioDown announce failed:", err)
+      );
+    }, OUTAGE_GRACE_MS);
+  }
+
+  manager.nodeManager.on("connect", (node) => {
+    console.log(`[lavalink] Node "${node.id}" connected`);
+    if (outageTimer) {
+      clearTimeout(outageTimer);
+      outageTimer = null;
+    }
+    if (outageAnnounced) {
+      outageAnnounced = false;
+      announce(client, "back").catch((err) =>
+        console.error("[lavalink] back announce failed:", err)
+      );
+    }
+  });
+  manager.nodeManager.on("error", (node, err) => {
+    console.error(`[lavalink] Node "${node.id}" error:`, err.message);
+    onNodeDown();
+  });
+  manager.nodeManager.on("disconnect", (node, reason) => {
+    console.warn(`[lavalink] Node "${node.id}" disconnected:`, reason);
+    onNodeDown();
+  });
 
   manager.on("trackStart", (player, track) => {
     postOrReplaceCard(client, player, track).catch((err) =>

@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { createLavalink } from "./lavalink.js";
+import { announce } from "./util/announce.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,10 +48,39 @@ await loadModulesFrom("buttons", (btn) => {
   client.buttons.set(btn.customId, btn);
 });
 
+// Announce downtime on the way out. Docker's stop grace period is short, so
+// cap how long we wait rather than risking SIGKILL mid-send.
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[shutdown] ${signal} received, announcing downtime`);
+  try {
+    await Promise.race([
+      announce(client, "shutdown"),
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
+  } catch (err) {
+    console.error("[shutdown] announce failed:", err);
+  }
+  try {
+    await client.destroy();
+  } catch {
+    // Already tearing down.
+  }
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
 process.on("unhandledRejection", (err) => {
   console.error("[unhandledRejection]", err);
 });
 process.on("uncaughtException", (err) => {
+  // Deliberately does not announce or exit: transient gateway errors like
+  // "Opening handshake has timed out" fire here routinely, and killing the
+  // process on each one would restart-loop the bot and spam the channel.
   console.error("[uncaughtException]", err);
 });
 
