@@ -32,11 +32,15 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
+      # ANDROID first: it returns direct stream URLs, so it sidesteps both the
+      # bot-detection wall and the player-script cipher that currently breaks
+      # the web-based clients. The rest are fallbacks for when it regresses.
+      - ANDROID
+      - ANDROID_MUSIC
+      - IOS
       - MUSIC
       - TV
-      - MWEB
       - WEB
-      - ANDROID_VR
     oauth:
       enabled: true
       # Populated after the one-time device login; see README.
@@ -55,8 +59,12 @@ plugins:
 
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
-      snapshot: false
+    # Snapshot build, not the 1.18.2 release: the release returns no search
+    # results on the ANDROID client, which is the only client that can
+    # currently stream (see the clients list above).
+    - dependency: "dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3"
+      repository: "https://maven.lavalink.dev/snapshots"
+      snapshot: true
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.1"
       snapshot: false
     - dependency: "com.github.topi314.sponsorblock:sponsorblock-plugin:3.0.1"
