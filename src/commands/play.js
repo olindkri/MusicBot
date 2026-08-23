@@ -5,6 +5,7 @@ import { formatDuration } from "../util/formatDuration.js";
 import { scheduleDelete } from "../util/replies.js";
 import { parseSpotifyUrl, fetchSpotifyPlaylist, fetchSpotifyAlbum } from "../util/spotify.js";
 import { randomIntroQuery } from "../util/intros.js";
+import { refreshNowPlayingRow } from "../lavalink.js";
 
 const SEARCH_CHUNK_SIZE = 10;
 
@@ -83,6 +84,7 @@ export default {
           if (justJoining) await new Promise((r) => setTimeout(r, 1000));
           await player.play();
         }
+        await refreshNowPlayingRow(interaction.client, player);
         const name = lavaResult.playlist?.name ?? "Spotify playlist";
         await interaction.editReply({
           embeds: [infoEmbed(`Queued **${lavaResult.tracks.length}** tracks from **${name}**.`)],
@@ -124,6 +126,7 @@ export default {
         if (justJoining) await new Promise((r) => setTimeout(r, 1000));
         await player.play();
       }
+      await refreshNowPlayingRow(interaction.client, player);
 
       await interaction.editReply({
         embeds: [infoEmbed(`Queued **${tracks.length}** tracks from **${bundle.name}**.`)],
@@ -161,6 +164,7 @@ export default {
       if (justJoining) await new Promise((r) => setTimeout(r, 1000));
       await player.play();
     }
+    await refreshNowPlayingRow(interaction.client, player);
 
     if (isPlaylist) {
       const name = result.playlist?.name ?? "Playlist";

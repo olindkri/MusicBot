@@ -30,17 +30,20 @@ export function buildNowPlayingEmbed(track) {
   const info = track.info;
   const requester = track.requester;
 
+  // Artist/duration/source live on single lines rather than in a field row: the
+  // thumbnail renders at a fixed ~80px, so a shorter card is the only way to let
+  // the artwork span its full height.
+  const duration = info.isStream ? "LIVE" : formatDuration(info.duration);
+
   const embed = new EmbedBuilder()
     .setColor(COLORS.brand)
     .setTitle(info.title || "Unknown title")
     .setURL(info.uri || null)
     .setAuthor({ name: "Now playing" })
-    .addFields(
-      { name: "Artist", value: info.author || "Unknown", inline: true },
-      { name: "Duration", value: info.isStream ? "LIVE" : formatDuration(info.duration), inline: true },
-      { name: "Source", value: sourceLabel(info.sourceName), inline: true },
-    )
-    .setFooter({ text: `Requested by ${requester?.username ?? "unknown"}` });
+    .setDescription(`**${info.author || "Unknown"}** \u00b7 ${duration}`)
+    .setFooter({
+      text: `${sourceLabel(info.sourceName)} \u00b7 Requested by ${requester?.username ?? "unknown"}`,
+    });
 
   if (info.artworkUrl) embed.setThumbnail(info.artworkUrl);
   return embed;
@@ -48,7 +51,11 @@ export function buildNowPlayingEmbed(track) {
 
 export function buildNowPlayingRow(player) {
   const paused = player?.paused === true;
-  return new ActionRowBuilder().addComponents(
+  // Shuffle needs at least two upcoming tracks to do anything — same rule the
+  // button handler enforces, so hide it rather than offer a guaranteed error.
+  const canShuffle = (player?.queue?.tracks?.length ?? 0) >= 2;
+
+  const buttons = [
     new ButtonBuilder()
       .setCustomId("np:playpause")
       .setLabel(paused ? "Resume" : "Pause")
@@ -61,11 +68,18 @@ export function buildNowPlayingRow(player) {
       .setCustomId("np:stop")
       .setLabel("Stop")
       .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId("np:shuffle")
-      .setLabel("Shuffle")
-      .setStyle(ButtonStyle.Primary),
-  );
+  ];
+
+  if (canShuffle) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId("np:shuffle")
+        .setLabel("Shuffle")
+        .setStyle(ButtonStyle.Primary),
+    );
+  }
+
+  return new ActionRowBuilder().addComponents(...buttons);
 }
 
 export function buildNowPlayingMessage(track, player) {

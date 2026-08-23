@@ -1,5 +1,5 @@
 import { LavalinkManager } from "lavalink-client";
-import { buildNowPlayingMessage } from "./components/nowPlayingCard.js";
+import { buildNowPlayingMessage, buildNowPlayingRow } from "./components/nowPlayingCard.js";
 import { getGuildState, clearGuildState } from "./state.js";
 import { errorEmbed } from "./util/embeds.js";
 import { announce } from "./util/announce.js";
@@ -50,6 +50,21 @@ async function deleteNowPlayingCard(client, guildId) {
     await channel.messages.delete(messageId);
   } catch {
     // Already gone.
+  }
+}
+
+// Queueing more tracks mid-song can make Shuffle relevant, but nothing repaints
+// the card until the next trackStart. Refresh just the buttons in that window.
+export async function refreshNowPlayingRow(client, player) {
+  const state = getGuildState(player.guildId);
+  if (!state.nowPlayingMessageId || !state.nowPlayingChannelId) return;
+  try {
+    const channel = await getTextChannel(client, state.nowPlayingChannelId);
+    if (!channel?.isTextBased()) return;
+    const msg = await channel.messages.fetch(state.nowPlayingMessageId);
+    await msg.edit({ components: [buildNowPlayingRow(player)] });
+  } catch {
+    // Card is gone or uneditable; the next trackStart reposts it.
   }
 }
 
